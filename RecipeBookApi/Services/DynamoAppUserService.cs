@@ -3,7 +3,6 @@ using Common.Dynamo.Models;
 using Google.Apis.Auth;
 using RecipeBookApi.Models;
 using RecipeBookApi.Services.Contracts;
-using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -19,25 +18,26 @@ namespace RecipeBookApi.Services
             _appUserStorage = appUserStorage;
         }
 
-        public async Task<AppUserViewModel> Authenticate(GoogleJsonWebSignature.Payload payload)
+        public async Task<string> Authenticate(GoogleJsonWebSignature.Payload payload)
         {
-            throw new NotImplementedException();
-            //var appUsers = await _appUserStorage.ReadAll();
+            var appUsers = await _appUserStorage.ReadAll();
 
-            //var user = appUsers.SingleOrDefault(u => u.EmailAddress == payload.Email);
-            //if (user == null)
-            //{
-            //    user = new AppUser
-            //    {
-            //        EmailAddress = payload.Email,
-            //        OauthSubject = payload.Subject,
-            //        OauthIssuer = payload.Issuer,
-            //        FirstName = payload.GivenName,
-            //        LastName = payload.FamilyName
-            //    };
+            var user = appUsers.SingleOrDefault(u => u.EmailAddress.ToLower() == payload.Email.ToLower());
+            if (user == null)
+            {
+                user = new AppUser
+                {
+                    EmailAddress = payload.Email,
+                    OauthSubject = payload.Subject,
+                    OauthIssuer = payload.Issuer,
+                    FirstName = payload.GivenName,
+                    LastName = payload.FamilyName
+                };
 
-            //    var createdId = _appUserStorage.Create(user, null);
-            //}
+                await _appUserStorage.Create(user, null);
+            }
+
+            return user.EmailAddress;
         }
 
         public async Task<IEnumerable<AppUserViewModel>> GetAll()

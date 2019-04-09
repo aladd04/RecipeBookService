@@ -7,7 +7,7 @@ namespace RecipeBookApi.Services.Contracts
 {
     public interface IAppUserService
     {
-        Task<AppUserViewModel> Authenticate(GoogleJsonWebSignature.Payload payload);
+        Task<string> Authenticate(GoogleJsonWebSignature.Payload payload);
         Task<IEnumerable<AppUserViewModel>> GetAll();
     }
 }
