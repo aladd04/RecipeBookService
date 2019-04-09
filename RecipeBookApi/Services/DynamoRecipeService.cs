@@ -1,19 +1,19 @@
 ﻿using Common.Dynamo.Contracts;
 using Common.Dynamo.Models;
-using RecipeBookApi.Logic.Contracts;
 using RecipeBookApi.Models;
+using RecipeBookApi.Services.Contracts;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace RecipeBookApi.Logic
+namespace RecipeBookApi.Services
 {
-    public class DynamoRecipeLogic : IRecipeLogic
+    public class DynamoRecipeService : IRecipeService
     {
         private readonly IDynamoStorageRepository<Recipe> _recipeStorage;
         private readonly IDynamoStorageRepository<AppUser> _appUserStorage;
 
-        public DynamoRecipeLogic(IDynamoStorageRepository<Recipe> recipeStorage, IDynamoStorageRepository<AppUser> appUserStorage)
+        public DynamoRecipeService(IDynamoStorageRepository<Recipe> recipeStorage, IDynamoStorageRepository<AppUser> appUserStorage)
         {
             _recipeStorage = recipeStorage;
             _appUserStorage = appUserStorage;

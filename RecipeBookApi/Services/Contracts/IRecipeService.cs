@@ -2,9 +2,9 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
-namespace RecipeBookApi.Logic.Contracts
+namespace RecipeBookApi.Services.Contracts
 {
-    public interface IRecipeLogic
+    public interface IRecipeService
     {
         Task<string> Create(RecipePostPutModel model);
         Task Delete(string id);

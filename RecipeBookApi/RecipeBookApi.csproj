@@ -8,8 +8,10 @@
     <PackageReference Include="AWSSDK.DynamoDBv2" Version="3.3.100.5" />
     <PackageReference Include="AWSSDK.Extensions.NETCore.Setup" Version="3.3.100.1" />
     <PackageReference Include="Amazon.Lambda.AspNetCoreServer" Version="3.0.3" />
-    <PackageReference Include="Microsoft.AspNetCore.App" Version="2.1.6" />
-    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="2.1.6" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.38.2" />
+    <PackageReference Include="Google.Apis.Auth.AspNetCore" Version="1.38.2" />
+    <PackageReference Include="Microsoft.AspNetCore.App" Version="[2.1.6]" />
+    <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="[2.1.6]" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="4.0.1" />
   </ItemGroup>
   <ItemGroup>

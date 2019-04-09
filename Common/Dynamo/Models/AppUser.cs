@@ -12,6 +12,10 @@ namespace Common.Dynamo.Models
 
         public string LastName { get; set; }
 
+        public string OauthSubject { get; set; }
+
+        public string OauthIssuer { get; set; }
+
         public DateTime? LastLoggedInDate { get; set; }
 
         [DynamoDBIgnore]

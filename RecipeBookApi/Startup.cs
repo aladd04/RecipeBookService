@@ -8,9 +8,11 @@ using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using RecipeBookApi.Logic;
-using RecipeBookApi.Logic.Contracts;
+using Microsoft.IdentityModel.Tokens;
+using RecipeBookApi.Services;
+using RecipeBookApi.Services.Contracts;
 using Swashbuckle.AspNetCore.Swagger;
+using System.Text;
 
 namespace RecipeBookApi
 {
@@ -43,10 +45,26 @@ namespace RecipeBookApi
                 });
             });
 
-            var awsOptions = Configuration.GetAWSOptions();
+            services.AddAuthentication()
+                .AddJwtBearer(options =>
+                {
+                    var jwtSecret = Configuration.GetValue<string>("JwtSecret");
+
+                    options.RequireHttpsMetadata = false;
+                    options.SaveToken = true;
+
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
+                        ValidateIssuer = false,
+                        ValidateAudience = false
+                    };
+                });
 
             services.AddScoped<IDynamoDBContext, DynamoDBContext>(serviceProvider =>
             {
+                var awsOptions = Configuration.GetAWSOptions();
                 var awsAccessKey = Configuration.GetValue<string>("AWSAccessKey");
                 var awsSecretAccessKey = Configuration.GetValue<string>("AWSSecretAccessKey");
 
@@ -55,8 +73,8 @@ namespace RecipeBookApi
 
             services.AddScoped<IDynamoStorageRepository<AppUser>, DynamoStorageRepository<AppUser>>();
             services.AddScoped<IDynamoStorageRepository<Recipe>, DynamoStorageRepository<Recipe>>();
-            services.AddScoped<IAppUserLogic, DynamoAppUserLogic>();
-            services.AddScoped<IRecipeLogic, DynamoRecipeLogic>();
+            services.AddScoped<IAppUserService, DynamoAppUserLogic>();
+            services.AddScoped<IRecipeService, DynamoRecipeService>();
         }
 
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
@@ -77,6 +95,7 @@ namespace RecipeBookApi
             });
 
             app.UseCors();
+            app.UseAuthentication();
             app.UseHttpsRedirection();
             app.UseMvc();
         }
