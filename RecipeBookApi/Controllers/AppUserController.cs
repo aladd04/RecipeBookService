@@ -17,10 +17,8 @@ using System.Threading.Tasks;
 
 namespace RecipeBookApi.Controllers
 {
-    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [Route("api/[controller]")]
-    [ApiController]
-    public class AppUserController : ControllerBase
+    public class AppUserController : BaseApiController
     {
         private readonly IConfiguration _configuration;
         private readonly IAppUserService _appUserService;
@@ -43,16 +41,15 @@ namespace RecipeBookApi.Controllers
                 var googleAuthPayload = await GoogleJsonWebSignature.ValidateAsync(googleAuthModel.Token, new GoogleJsonWebSignature.ValidationSettings());
                 var userEmail = await _appUserService.Authenticate(googleAuthPayload);
 
-                var emailEncryptionKey = _configuration.GetValue<string>("EmailEncryptionKey");
-                var jwtSecret = _configuration.GetValue<string>("JwtSecret");
+                var googleAuthSecret = _configuration.GetValue<string>("GoogleAuthSecret");
 
                 var claims = new[]
                 {
-                    new Claim(JwtRegisteredClaimNames.Sub, CryptoFactory.Encrypt(emailEncryptionKey, userEmail)),
+                    new Claim(JwtRegisteredClaimNames.Sub, CryptoFactory.Encrypt(googleAuthSecret, userEmail)),
                     new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
                 };
 
-                var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(jwtSecret));
+                var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(googleAuthSecret));
                 var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
                 var token = new JwtSecurityToken(null, null, claims, null, DateTime.Now.AddHours(1), credentials);

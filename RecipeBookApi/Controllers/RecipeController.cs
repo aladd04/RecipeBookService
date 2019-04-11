@@ -9,8 +9,7 @@ using System.Threading.Tasks;
 namespace RecipeBookApi.Controllers
 {
     [Route("api/[controller]")]
-    [ApiController]
-    public class RecipeController : ControllerBase
+    public class RecipeController : BaseApiController
     {
         private readonly IRecipeService _recipeService;
 
@@ -30,7 +29,7 @@ namespace RecipeBookApi.Controllers
             return Ok(allRecipes);
         }
 
-        [AllowAnonymous]
+        //[AllowAnonymous]
         [HttpGet]
         [Route("{recipeId}")]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]

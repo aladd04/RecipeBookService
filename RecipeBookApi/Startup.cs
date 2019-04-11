@@ -3,6 +3,7 @@ using Amazon.DynamoDBv2.DataModel;
 using Common.Dynamo;
 using Common.Dynamo.Contracts;
 using Common.Dynamo.Models;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using RecipeBookApi.Services;
 using RecipeBookApi.Services.Contracts;
+using RecipeBookApi.TokenValidators;
 using Swashbuckle.AspNetCore.Swagger;
 using System.Text;
 
@@ -45,22 +47,33 @@ namespace RecipeBookApi
                 });
             });
 
-            services.AddAuthentication()
-                .AddJwtBearer(options =>
+            services.AddAuthentication(options =>
+            {
+                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
+                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            })
+            .AddJwtBearer(options =>
+            {
+                var googleAuthSecret = Configuration.GetValue<string>("GoogleAuthSecret");
+                var googleClientId = Configuration.GetValue<string>("GoogleClientId");
+                var authority = "accounts.google.com";
+
+                options.RequireHttpsMetadata = false;
+                options.SaveToken = false;
+                options.Authority = authority;
+                options.Audience = googleClientId;
+
+                options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    var jwtSecret = Configuration.GetValue<string>("JwtSecret");
+                    ValidIssuer = authority,
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(googleAuthSecret))
+                };
 
-                    options.RequireHttpsMetadata = false;
-                    options.SaveToken = true;
-
-                    options.TokenValidationParameters = new TokenValidationParameters
-                    {
-                        ValidateIssuerSigningKey = true,
-                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecret)),
-                        ValidateIssuer = false,
-                        ValidateAudience = false
-                    };
-                });
+                options.SecurityTokenValidators.Clear();
+                options.SecurityTokenValidators.Add(new GoogleTokenValidator());
+            });
 
             services.AddScoped<IDynamoDBContext, DynamoDBContext>(serviceProvider =>
             {
