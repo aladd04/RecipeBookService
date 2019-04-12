@@ -1,9 +1,7 @@
 ﻿using Google.Apis.Auth;
 using Microsoft.IdentityModel.Tokens;
-using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
-using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
 
@@ -32,8 +30,11 @@ namespace RecipeBookApi.TokenValidators
         public ClaimsPrincipal ValidateToken(string securityToken, TokenValidationParameters validationParameters, out SecurityToken validatedToken)
         {
             validatedToken = null;
-            var payload = GoogleJsonWebSignature.ValidateAsync(securityToken, new GoogleJsonWebSignature.ValidationSettings()).Result;
 
+            var validationTask = Task.Run(() => GoogleJsonWebSignature.ValidateAsync(securityToken, new GoogleJsonWebSignature.ValidationSettings()));
+            validationTask.Wait();
+
+            var payload = validationTask.Result;
             var claims = new List<Claim>
             {
                 new Claim(ClaimTypes.NameIdentifier, payload.Name),

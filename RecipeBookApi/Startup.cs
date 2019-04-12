@@ -36,43 +36,41 @@ namespace RecipeBookApi
                 options.SwaggerDoc("v1", new Info { Title = "Recipe Book API", Version = "v1" });
             });
 
-            services.AddCors(options =>
-            {
-                options.AddDefaultPolicy(builder =>
-                {
-                    builder.WithOrigins("http://localhost:3000", "http://katiemaeskitchen.com")
-                        .AllowAnyHeader()
-                        .AllowAnyMethod()
-                        .AllowCredentials();
-                });
-            });
-
-            services.AddAuthentication(options =>
-            {
-                options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-            })
+            services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
                 var googleAuthSecret = Configuration.GetValue<string>("GoogleAuthSecret");
                 var googleClientId = Configuration.GetValue<string>("GoogleClientId");
-                var authority = "accounts.google.com";
 
                 options.RequireHttpsMetadata = false;
-                options.SaveToken = false;
-                options.Authority = authority;
+                options.SaveToken = true;
                 options.Audience = googleClientId;
 
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    ValidIssuer = authority,
+                    RequireExpirationTime = true,
+                    ValidateLifetime = true,
+                    ValidateAudience = true,
                     ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(googleAuthSecret))
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(googleAuthSecret)),
+                    ValidIssuer = "accounts.google.com"
                 };
 
                 options.SecurityTokenValidators.Clear();
                 options.SecurityTokenValidators.Add(new GoogleTokenValidator());
+            });
+
+            services.AddCors(options =>
+            {
+                options.AddDefaultPolicy(builder =>
+                {
+                    var corsOrigin = Configuration.GetValue<string>("CorsOrigin");
+
+                    builder.WithOrigins(corsOrigin)
+                        .AllowAnyHeader()
+                        .AllowAnyMethod()
+                        .AllowCredentials();
+                });
             });
 
             services.AddScoped<IDynamoDBContext, DynamoDBContext>(serviceProvider =>
@@ -107,8 +105,8 @@ namespace RecipeBookApi
                 options.SwaggerEndpoint("/swagger/v1/swagger.json", "Recipe Book API");
             });
 
-            app.UseCors();
             app.UseAuthentication();
+            app.UseCors();
             app.UseHttpsRedirection();
             app.UseMvc();
         }
