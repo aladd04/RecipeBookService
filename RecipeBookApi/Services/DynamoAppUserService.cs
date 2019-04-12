@@ -3,7 +3,6 @@ using Common.Dynamo.Models;
 using Google.Apis.Auth;
 using RecipeBookApi.Models;
 using RecipeBookApi.Services.Contracts;
-using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -34,17 +33,23 @@ namespace RecipeBookApi.Services
                     LastName = payload.FamilyName
                 };
 
-                await _appUserStorage.Create(user, null);
+                var createdId = await _appUserStorage.Create(user, null);
+
+                user.Id = createdId;
             }
 
-            return user.EmailAddress;
+            return user.Id;
         }
 
-        public async Task<IEnumerable<AppUserViewModel>> GetAll()
+        public async Task<AppUserViewModel> GetById(string id)
         {
-            var appUsers = await _appUserStorage.ReadAll();
+            var recipe = await _appUserStorage.Read(id);
+            if (recipe == null)
+            {
+                return null;
+            }
 
-            return appUsers.Select(u => CreateAppUserViewModel(u));
+            return CreateAppUserViewModel(recipe);
         }
 
         private static AppUserViewModel CreateAppUserViewModel(AppUser appUser)

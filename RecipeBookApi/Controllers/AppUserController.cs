@@ -1,6 +1,5 @@
 ﻿using Common.Factories;
 using Google.Apis.Auth;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
@@ -39,14 +38,14 @@ namespace RecipeBookApi.Controllers
             try
             {
                 var googleAuthPayload = await GoogleJsonWebSignature.ValidateAsync(googleAuthModel.Token, new GoogleJsonWebSignature.ValidationSettings());
-                var userEmail = await _appUserService.Authenticate(googleAuthPayload);
+
+                var userId = await _appUserService.Authenticate(googleAuthPayload);
 
                 var googleAuthSecret = _configuration.GetValue<string>("GoogleAuthSecret");
 
-                var claims = new[]
+                var claims = new List<Claim>
                 {
-                    new Claim(JwtRegisteredClaimNames.Sub, CryptoFactory.Encrypt(googleAuthSecret, userEmail)),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+                    new Claim("userId", CryptoFactory.Encrypt(googleAuthSecret, userId))
                 };
 
                 var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(googleAuthSecret));
@@ -64,16 +63,6 @@ namespace RecipeBookApi.Controllers
             {
                 return BadRequest($"Issue authenticating with Google: ${ex.Message}");
             }
-        }
-
-        [HttpGet]
-        [Route("")]
-        [ProducesResponseType(typeof(IEnumerable<AppUserViewModel>), (int)HttpStatusCode.OK)]
-        public async Task<IActionResult> GetAllAppUsers()
-        {
-            var allAppUsers = await _appUserService.GetAll();
-
-            return Ok(allAppUsers);
         }
     }
 }

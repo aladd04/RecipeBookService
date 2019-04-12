@@ -29,7 +29,7 @@ namespace RecipeBookApi.Controllers
             return Ok(allRecipes);
         }
 
-        //[AllowAnonymous]
+        [AllowAnonymous]
         [HttpGet]
         [Route("{recipeId}")]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]

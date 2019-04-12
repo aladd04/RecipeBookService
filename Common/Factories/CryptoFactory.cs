@@ -21,7 +21,7 @@ namespace Common.Factories
             var cryptoServiceProvider = GetCryptoServiceProvider(key);
             var cipherToDecryptBytes = Convert.FromBase64String(cipherToDecrypt);
 
-            var resultsBytes = cryptoServiceProvider.CreateDecryptor().TransformFinalBlock(cipherToDecryptBytes, 0, cipherToDecrypt.Length);
+            var resultsBytes = cryptoServiceProvider.CreateDecryptor().TransformFinalBlock(cipherToDecryptBytes, 0, cipherToDecryptBytes.Length);
 
             return UTF8Encoding.UTF8.GetString(resultsBytes);
         }

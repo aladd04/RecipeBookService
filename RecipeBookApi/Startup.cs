@@ -44,20 +44,22 @@ namespace RecipeBookApi
 
                 options.RequireHttpsMetadata = false;
                 options.SaveToken = true;
-                options.Audience = googleClientId;
+                //options.Audience = googleClientId;
 
                 options.TokenValidationParameters = new TokenValidationParameters
                 {
-                    RequireExpirationTime = true,
-                    ValidateLifetime = true,
-                    ValidateAudience = true,
+                    //RequireExpirationTime = true,
+                    //ValidateLifetime = true,
+                    //ValidateAudience = true,
+                    ValidateAudience = false,
+                    ValidateIssuer = false,
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(googleAuthSecret)),
-                    ValidIssuer = "accounts.google.com"
+                    //ValidIssuer = "accounts.google.com"
                 };
 
-                options.SecurityTokenValidators.Clear();
-                options.SecurityTokenValidators.Add(new GoogleTokenValidator());
+                //options.SecurityTokenValidators.Clear();
+                //options.SecurityTokenValidators.Add(new GoogleTokenValidator(services.BuildServiceProvider()));
             });
 
             services.AddCors(options =>

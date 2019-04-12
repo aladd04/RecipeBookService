@@ -1,5 +1,9 @@
-﻿using Google.Apis.Auth;
+﻿using Common.Factories;
+using Google.Apis.Auth;
+using Microsoft.Extensions.Configuration;
 using Microsoft.IdentityModel.Tokens;
+using RecipeBookApi.Services.Contracts;
+using System;
 using System.Collections.Generic;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
@@ -7,49 +11,63 @@ using System.Threading.Tasks;
 
 namespace RecipeBookApi.TokenValidators
 {
-    public class GoogleTokenValidator : ISecurityTokenValidator
+    public class GoogleTokenValidator : JwtSecurityTokenHandler
     {
-        private readonly JwtSecurityTokenHandler _tokenHandler;
+        private readonly IServiceProvider _serviceProvider;
 
-        public int MaximumTokenSizeInBytes { get; set; }
-
-        public bool CanValidateToken => _tokenHandler.CanValidateToken;
-
-        public GoogleTokenValidator()
+        public GoogleTokenValidator(IServiceProvider serviceProvider)
         {
-            _tokenHandler = new JwtSecurityTokenHandler();
-
-            MaximumTokenSizeInBytes = TokenValidationParameters.DefaultMaximumTokenSizeInBytes;
+            _serviceProvider = serviceProvider;
         }
 
-        public bool CanReadToken(string securityToken)
+        public override ClaimsPrincipal ValidateToken(string securityToken, TokenValidationParameters validationParameters, out SecurityToken validatedToken)
         {
-            return _tokenHandler.CanReadToken(securityToken);
-        }
-
-        public ClaimsPrincipal ValidateToken(string securityToken, TokenValidationParameters validationParameters, out SecurityToken validatedToken)
-        {
-            validatedToken = null;
-
-            var validationTask = Task.Run(() => GoogleJsonWebSignature.ValidateAsync(securityToken, new GoogleJsonWebSignature.ValidationSettings()));
-            validationTask.Wait();
-
-            var payload = validationTask.Result;
-            var claims = new List<Claim>
+            try
             {
-                new Claim(ClaimTypes.NameIdentifier, payload.Name),
-                new Claim(ClaimTypes.Name, payload.Name),
-                new Claim(JwtRegisteredClaimNames.FamilyName, payload.FamilyName),
-                new Claim(JwtRegisteredClaimNames.GivenName, payload.GivenName),
-                new Claim(JwtRegisteredClaimNames.Email, payload.Email),
-                new Claim(JwtRegisteredClaimNames.Sub, payload.Subject),
-                new Claim(JwtRegisteredClaimNames.Iss, payload.Issuer)
-            };
+                var principal = base.ValidateToken(securityToken, validationParameters, out validatedToken);
+                var token = validatedToken;
 
-            var principle = new ClaimsPrincipal();
-            principle.AddIdentity(new ClaimsIdentity(claims));
+                Task.WaitAll(Task.Run(async () =>
+                {
+                    var payload = await GoogleJsonWebSignature.ValidateAsync(securityToken, new GoogleJsonWebSignature.ValidationSettings());
 
-            return principle;
+                    var configurationService = (IConfiguration)_serviceProvider.GetService(typeof(IConfiguration));
+                    var appUserService = (IAppUserService)_serviceProvider.GetService(typeof(IAppUserService));
+                    var googleAuthSecret = configurationService.GetValue<string>("GoogleAuthSecret");
+
+                    var userId = CryptoFactory.Decrypt(googleAuthSecret, payload.Subject);
+                    var user = appUserService.GetById(userId);
+
+                    if (user == null)
+                    {
+                        principal = null;
+                        token = null;
+                    }
+                    else
+                    {
+                        var claims = new List<Claim>
+                    {
+                        new Claim(ClaimTypes.NameIdentifier, payload.Name),
+                        new Claim(ClaimTypes.Name, payload.Name),
+                        new Claim(JwtRegisteredClaimNames.FamilyName, payload.FamilyName),
+                        new Claim(JwtRegisteredClaimNames.GivenName, payload.GivenName),
+                        new Claim(JwtRegisteredClaimNames.Email, payload.Email),
+                        new Claim(JwtRegisteredClaimNames.Sub, payload.Subject),
+                        new Claim(JwtRegisteredClaimNames.Iss, payload.Issuer)
+                    };
+
+                        principal.AddIdentity(new ClaimsIdentity(claims));
+                    }
+                }));
+
+                validatedToken = token;
+                return principal;
+            }
+            catch (Exception ex)
+            {
+                validatedToken = null;
+                return null;
+            }
         }
     }
 }
