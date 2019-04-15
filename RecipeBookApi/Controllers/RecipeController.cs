@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Configuration;
 using RecipeBookApi.Models;
 using RecipeBookApi.Services.Contracts;
 using System.Collections.Generic;
@@ -13,7 +14,8 @@ namespace RecipeBookApi.Controllers
     {
         private readonly IRecipeService _recipeService;
 
-        public RecipeController(IRecipeService recipeService)
+        public RecipeController(IConfiguration configurationService, IRecipeService recipeService)
+            : base(configurationService)
         {
             _recipeService = recipeService;
         }
@@ -47,10 +49,16 @@ namespace RecipeBookApi.Controllers
 
         [HttpPost]
         [Route("")]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
         [ProducesResponseType(typeof(Dictionary<string, string[]>), (int)HttpStatusCode.BadRequest)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.Created)]
         public async Task<IActionResult> CreateRecipe([FromBody]RecipePostPutModel data)
         {
+            if (!IsLoggedIn)
+            {
+                return BadRequest("You must be logged in to create recipes.");
+            }
+
             if (data == null)
             {
                 ModelState.AddModelError("Body", "No body provided.");
@@ -71,6 +79,11 @@ namespace RecipeBookApi.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         public async Task<IActionResult> UpdateRecipe(string recipeId, [FromBody]RecipePostPutModel data)
         {
+            if (!IsLoggedIn)
+            {
+                return BadRequest("You must be logged in to edit recipes.");
+            }
+
             if (string.IsNullOrWhiteSpace(recipeId))
             {
                 ModelState.AddModelError(nameof(recipeId), "No ID provided to update.");
@@ -79,6 +92,13 @@ namespace RecipeBookApi.Controllers
             if (data == null)
             {
                 ModelState.AddModelError("Body", "No body provided.");
+            }
+            else
+            {
+                if (data.ExecutedById != CurrentUser.Id)
+                {
+                    ModelState.AddModelError(nameof(data.ExecutedById), "You are not allowed to edit someone else's recipe.");
+                }
             }
 
             if (!ModelState.IsValid)
@@ -93,13 +113,26 @@ namespace RecipeBookApi.Controllers
         [HttpDelete]
         [Route("{recipeId}")]
         [ProducesResponseType((int)HttpStatusCode.NotFound)]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         public async Task<IActionResult> DeleteRecipe(string recipeId)
         {
+            if (!IsLoggedIn)
+            {
+                return BadRequest("You must be logged in to delete recipes.");
+            }
+
             var recipeToDelete = string.IsNullOrWhiteSpace(recipeId) ? null : await _recipeService.GetById(recipeId);
             if (recipeToDelete == null)
             {
                 return NotFound();
+            }
+            else
+            {
+                if (recipeToDelete.OwnerName != CurrentUser.FullName)
+                {
+                    return BadRequest("You are not allowed to delete someone else's recipe");
+                }
             }
 
             await _recipeService.Delete(recipeId);

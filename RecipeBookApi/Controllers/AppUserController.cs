@@ -19,12 +19,11 @@ namespace RecipeBookApi.Controllers
     [Route("api/[controller]")]
     public class AppUserController : BaseApiController
     {
-        private readonly IConfiguration _configuration;
         private readonly IAppUserService _appUserService;
 
-        public AppUserController(IConfiguration configuration, IAppUserService appUserService)
+        public AppUserController(IConfiguration configurationService, IAppUserService appUserService)
+            : base(configurationService)
         {
-            _configuration = configuration;
             _appUserService = appUserService;
         }
 
@@ -38,14 +37,15 @@ namespace RecipeBookApi.Controllers
             try
             {
                 var googleAuthPayload = await GoogleJsonWebSignature.ValidateAsync(googleAuthModel.Token, new GoogleJsonWebSignature.ValidationSettings());
+                var user = await _appUserService.Authenticate(googleAuthPayload);
 
-                var userId = await _appUserService.Authenticate(googleAuthPayload);
-
-                var googleAuthSecret = _configuration.GetValue<string>("GoogleAuthSecret");
-
+                var googleAuthSecret = ConfigurationService.GetValue<string>("GoogleAuthSecret");
                 var claims = new List<Claim>
                 {
-                    new Claim("userId", CryptoFactory.Encrypt(googleAuthSecret, userId))
+                    new Claim(nameof(user.Id), CryptoFactory.Encrypt(googleAuthSecret, user.Id)),
+                    new Claim(nameof(user.EmailAddress), CryptoFactory.Encrypt(googleAuthSecret, user.EmailAddress)),
+                    new Claim(nameof(user.FirstName), CryptoFactory.Encrypt(googleAuthSecret, user.FirstName)),
+                    new Claim(nameof(user.LastName), CryptoFactory.Encrypt(googleAuthSecret, user.LastName))
                 };
 
                 var key = new SymmetricSecurityKey(Encoding.ASCII.GetBytes(googleAuthSecret));

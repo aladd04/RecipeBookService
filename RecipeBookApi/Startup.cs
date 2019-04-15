@@ -12,7 +12,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using RecipeBookApi.Services;
 using RecipeBookApi.Services.Contracts;
-using RecipeBookApi.TokenValidators;
 using Swashbuckle.AspNetCore.Swagger;
 using System.Text;
 
@@ -37,30 +36,21 @@ namespace RecipeBookApi
             });
 
             services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-            .AddJwtBearer(options =>
-            {
-                var googleAuthSecret = Configuration.GetValue<string>("GoogleAuthSecret");
-                var googleClientId = Configuration.GetValue<string>("GoogleClientId");
-
-                options.RequireHttpsMetadata = false;
-                options.SaveToken = true;
-                //options.Audience = googleClientId;
-
-                options.TokenValidationParameters = new TokenValidationParameters
+                .AddJwtBearer(options =>
                 {
-                    //RequireExpirationTime = true,
-                    //ValidateLifetime = true,
-                    //ValidateAudience = true,
-                    ValidateAudience = false,
-                    ValidateIssuer = false,
-                    ValidateIssuerSigningKey = true,
-                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(googleAuthSecret)),
-                    //ValidIssuer = "accounts.google.com"
-                };
+                    var googleAuthSecret = Configuration.GetValue<string>("GoogleAuthSecret");
 
-                //options.SecurityTokenValidators.Clear();
-                //options.SecurityTokenValidators.Add(new GoogleTokenValidator(services.BuildServiceProvider()));
-            });
+                    options.RequireHttpsMetadata = false;
+                    options.SaveToken = true;
+
+                    options.TokenValidationParameters = new TokenValidationParameters
+                    {
+                        ValidateAudience = false,
+                        ValidateIssuer = false,
+                        ValidateIssuerSigningKey = true,
+                        IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(googleAuthSecret))
+                    };
+                });
 
             services.AddCors(options =>
             {

@@ -1,8 +1,10 @@
 ﻿using Common.Dynamo.Contracts;
 using Common.Dynamo.Models;
+using Common.Extensions;
 using Google.Apis.Auth;
 using RecipeBookApi.Models;
 using RecipeBookApi.Services.Contracts;
+using System;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -17,7 +19,7 @@ namespace RecipeBookApi.Services
             _appUserStorage = appUserStorage;
         }
 
-        public async Task<string> Authenticate(GoogleJsonWebSignature.Payload payload)
+        public async Task<AppUserViewModel> Authenticate(GoogleJsonWebSignature.Payload payload)
         {
             var appUsers = await _appUserStorage.ReadAll();
 
@@ -30,26 +32,20 @@ namespace RecipeBookApi.Services
                     OauthSubject = payload.Subject,
                     OauthIssuer = payload.Issuer,
                     FirstName = payload.GivenName,
-                    LastName = payload.FamilyName
+                    LastName = payload.FamilyName,
+                    LastLoggedInDate = DateTime.Now.ToEasternStandardTime()
                 };
 
-                var createdId = await _appUserStorage.Create(user, null);
-
-                user.Id = createdId;
+                user.Id = await _appUserStorage.Create(user, null);
             }
-
-            return user.Id;
-        }
-
-        public async Task<AppUserViewModel> GetById(string id)
-        {
-            var recipe = await _appUserStorage.Read(id);
-            if (recipe == null)
+            else
             {
-                return null;
+                user.LastLoggedInDate = DateTime.Now.ToEasternStandardTime();
+
+                await _appUserStorage.Update(user, user, user.Id, null);
             }
 
-            return CreateAppUserViewModel(recipe);
+            return CreateAppUserViewModel(user);
         }
 
         private static AppUserViewModel CreateAppUserViewModel(AppUser appUser)
@@ -59,7 +55,6 @@ namespace RecipeBookApi.Services
                 Id = appUser.Id,
                 EmailAddress = appUser.EmailAddress,
                 FirstName = appUser.FirstName,
-                LastLoggedInDate = appUser.LastLoggedInDate,
                 LastName = appUser.LastName
             };
         }

@@ -12,8 +12,6 @@ namespace RecipeBookApi.Models
 
         public string LastName { get; set; }
 
-        public DateTime? LastLoggedInDate { get; set; }
-
         public string FullName => $"{FirstName} {LastName}";
     }
 }
