@@ -88,12 +88,6 @@ namespace RecipeBookApi.Controllers
                 ModelState.AddModelError(nameof(recipeId), "No ID provided to update.");
             }
 
-            var recipeToUpdate = string.IsNullOrWhiteSpace(recipeId) ? null : await _recipeService.GetById(recipeId);
-            if (recipeToUpdate == null)
-            {
-                return NotFound();
-            }
-
             if (data == null)
             {
                 ModelState.AddModelError("Body", "No body provided.");
@@ -109,6 +103,10 @@ namespace RecipeBookApi.Controllers
                 await _recipeService.Update(recipeId, data, CurrentUser.Id);
                 return Ok();
             }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
+            }
             catch (Exception ex)
             {
                 return BadRequest($"Issue updating a recipe: {ex.Message}");
@@ -122,16 +120,14 @@ namespace RecipeBookApi.Controllers
         [ProducesResponseType((int)HttpStatusCode.OK)]
         public async Task<IActionResult> DeleteRecipe(string recipeId)
         {
-            var recipeToDelete = string.IsNullOrWhiteSpace(recipeId) ? null : await _recipeService.GetById(recipeId);
-            if (recipeToDelete == null)
-            {
-                return NotFound();
-            }
-
             try
             {
                 await _recipeService.Delete(recipeId, CurrentUser.Id);
                 return Ok();
+            }
+            catch (KeyNotFoundException)
+            {
+                return NotFound();
             }
             catch (Exception ex)
             {

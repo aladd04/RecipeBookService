@@ -60,6 +60,11 @@ namespace RecipeBookApi.Services
         public async Task Update(string id, RecipePostPutModel model, string executedById)
         {
             var originalRecipe = await _recipeStorage.Read(id);
+            if (originalRecipe == null)
+            {
+                throw new KeyNotFoundException();
+            }
+
             if (originalRecipe.CreatedById != executedById)
             {
                 throw new Exception("You cannot update someone else's recipe");
@@ -79,6 +84,11 @@ namespace RecipeBookApi.Services
         public async Task Delete(string id, string executedById)
         {
             var recipe = await _recipeStorage.Read(id);
+            if (recipe == null)
+            {
+                throw new KeyNotFoundException();
+            }
+
             if (recipe.CreatedById != executedById)
             {
                 throw new Exception("You cannot delete someone else's recipe");
