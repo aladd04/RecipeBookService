@@ -14,8 +14,5 @@ namespace RecipeBookApi.Models
 
         [Required]
         public string Instructions { get; set; }
-
-        [Required]
-        public string ExecutedById { get; set; }
     }
 }

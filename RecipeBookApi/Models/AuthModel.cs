@@ -1,6 +1,6 @@
 ﻿namespace RecipeBookApi.Models
 {
-    public class GoogleAuthModel
+    public class AuthModel
     {
         public string Token { get; set; }
     }

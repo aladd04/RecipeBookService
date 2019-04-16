@@ -1,8 +1,6 @@
-﻿using System;
-
-namespace RecipeBookApi.Models
+﻿namespace RecipeBookApi.Models
 {
-    public class AppUserViewModel
+    public class AppUserClaimModel
     {
         public string Id { get; set; }
 
@@ -11,7 +9,5 @@ namespace RecipeBookApi.Models
         public string FirstName { get; set; }
 
         public string LastName { get; set; }
-
-        public string FullName => $"{FirstName} {LastName}";
     }
 }

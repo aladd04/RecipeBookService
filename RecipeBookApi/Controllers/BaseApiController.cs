@@ -1,8 +1,7 @@
-﻿using Common.Factories;
-using Microsoft.AspNetCore.Authorization;
+﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using RecipeBookApi.Models;
+using RecipeBookApi.Services.Contracts;
 
 namespace RecipeBookApi.Controllers
 {
@@ -10,42 +9,13 @@ namespace RecipeBookApi.Controllers
     [ApiController]
     public abstract class BaseApiController : ControllerBase
     {
-        protected readonly IConfiguration ConfigurationService;
+        protected readonly IAuthService AuthService;
 
-        protected AppUserViewModel CurrentUser
+        protected AppUserClaimModel CurrentUser => AuthService.GetUserFromClaims(User);
+
+        protected BaseApiController(IAuthService authService)
         {
-            get
-            {
-                var googleAuthSecret = ConfigurationService.GetValue<string>("GoogleAuthSecret");
-
-                return new AppUserViewModel
-                {
-                    Id = CryptoFactory.Decrypt(googleAuthSecret, User.FindFirst(nameof(AppUserViewModel.Id)).Value),
-                    EmailAddress = CryptoFactory.Decrypt(googleAuthSecret, User.FindFirst(nameof(AppUserViewModel.EmailAddress)).Value),
-                    FirstName = CryptoFactory.Decrypt(googleAuthSecret, User.FindFirst(nameof(AppUserViewModel.FirstName)).Value),
-                    LastName = CryptoFactory.Decrypt(googleAuthSecret, User.FindFirst(nameof(AppUserViewModel.LastName)).Value),
-                };
-            }
-        }
-
-        protected bool IsLoggedIn
-        {
-            get
-            {
-                try
-                {
-                    return !string.IsNullOrWhiteSpace(CurrentUser?.Id);
-                }
-                catch
-                {
-                    return false;
-                }
-            }
-        }
-
-        protected BaseApiController(IConfiguration configurationService)
-        {
-            ConfigurationService = configurationService;
+            AuthService = authService;
         }
     }
 }

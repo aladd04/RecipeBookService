@@ -1,8 +1,8 @@
 ﻿using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Configuration;
 using RecipeBookApi.Models;
 using RecipeBookApi.Services.Contracts;
+using System;
 using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
@@ -14,8 +14,8 @@ namespace RecipeBookApi.Controllers
     {
         private readonly IRecipeService _recipeService;
 
-        public RecipeController(IConfiguration configurationService, IRecipeService recipeService)
-            : base(configurationService)
+        public RecipeController(IAuthService authService, IRecipeService recipeService)
+            : base(authService)
         {
             _recipeService = recipeService;
         }
@@ -54,11 +54,6 @@ namespace RecipeBookApi.Controllers
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.Created)]
         public async Task<IActionResult> CreateRecipe([FromBody]RecipePostPutModel data)
         {
-            if (!IsLoggedIn)
-            {
-                return BadRequest("You must be logged in to create recipes.");
-            }
-
             if (data == null)
             {
                 ModelState.AddModelError("Body", "No body provided.");
@@ -69,36 +64,39 @@ namespace RecipeBookApi.Controllers
                 return BadRequest(ModelState);
             }
 
-            var createdId = await _recipeService.Create(data);
-            return Ok(createdId);
+            try
+            {
+                var createdId = await _recipeService.Create(data, CurrentUser.Id);
+                return Ok(createdId);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Issue creating a new recipe: {ex.Message}");
+            }
         }
 
         [HttpPut]
         [Route("{recipeId}")]
+        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
         [ProducesResponseType(typeof(Dictionary<string, string[]>), (int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         public async Task<IActionResult> UpdateRecipe(string recipeId, [FromBody]RecipePostPutModel data)
         {
-            if (!IsLoggedIn)
-            {
-                return BadRequest("You must be logged in to edit recipes.");
-            }
-
             if (string.IsNullOrWhiteSpace(recipeId))
             {
                 ModelState.AddModelError(nameof(recipeId), "No ID provided to update.");
             }
 
+            var recipeToUpdate = string.IsNullOrWhiteSpace(recipeId) ? null : await _recipeService.GetById(recipeId);
+            if (recipeToUpdate == null)
+            {
+                return NotFound();
+            }
+
             if (data == null)
             {
                 ModelState.AddModelError("Body", "No body provided.");
-            }
-            else
-            {
-                if (data.ExecutedById != CurrentUser.Id)
-                {
-                    ModelState.AddModelError(nameof(data.ExecutedById), "You are not allowed to edit someone else's recipe.");
-                }
             }
 
             if (!ModelState.IsValid)
@@ -106,37 +104,39 @@ namespace RecipeBookApi.Controllers
                 return BadRequest(ModelState);
             }
 
-            await _recipeService.Update(recipeId, data);
-            return Ok();
+            try
+            {
+                await _recipeService.Update(recipeId, data, CurrentUser.Id);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Issue updating a recipe: {ex.Message}");
+            }
         }
 
         [HttpDelete]
         [Route("{recipeId}")]
-        [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
+        [ProducesResponseType((int)HttpStatusCode.NotFound)]
         [ProducesResponseType((int)HttpStatusCode.OK)]
         public async Task<IActionResult> DeleteRecipe(string recipeId)
         {
-            if (!IsLoggedIn)
-            {
-                return BadRequest("You must be logged in to delete recipes.");
-            }
-
             var recipeToDelete = string.IsNullOrWhiteSpace(recipeId) ? null : await _recipeService.GetById(recipeId);
             if (recipeToDelete == null)
             {
                 return NotFound();
             }
-            else
-            {
-                if (recipeToDelete.OwnerName != CurrentUser.FullName)
-                {
-                    return BadRequest("You are not allowed to delete someone else's recipe");
-                }
-            }
 
-            await _recipeService.Delete(recipeId);
-            return Ok();
+            try
+            {
+                await _recipeService.Delete(recipeId, CurrentUser.Id);
+                return Ok();
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Issue deleting a recipe: {ex.Message}");
+            }
         }
     }
 }
