@@ -31,9 +31,12 @@ namespace RecipeBookApi.Services
         public async Task<string> Authenticate(string token)
         {
             var googleAuthPayload = await GoogleJsonWebSignature.ValidateAsync(token, new GoogleJsonWebSignature.ValidationSettings());
-            var user = await ValidatePayloadWithStorage(googleAuthPayload);
 
-            return CreateUserToken(user);
+            var user = await UpdateStorageWithUserPayload(googleAuthPayload);
+
+            var userToken = CreateUserToken(user);
+
+            return userToken;
         }
 
         public AppUserClaimModel GetUserFromClaims(ClaimsPrincipal userClaims)
@@ -49,28 +52,28 @@ namespace RecipeBookApi.Services
             };
         }
 
-        private async Task<AppUser> ValidatePayloadWithStorage(GoogleJsonWebSignature.Payload googleAuthPayload)
+        private async Task<AppUser> UpdateStorageWithUserPayload(GoogleJsonWebSignature.Payload googleAuthPayload)
         {
-            var user = new AppUser
-            {
-                EmailAddress = googleAuthPayload.Email,
-                OauthSubject = googleAuthPayload.Subject,
-                OauthIssuer = googleAuthPayload.Issuer,
-                FirstName = googleAuthPayload.GivenName,
-                LastName = googleAuthPayload.FamilyName,
-                LastLoggedInDate = DateTime.Now.ToEasternStandardTime()
-            };
-
             var appUsers = await _appUserStorage.ReadAll();
-            var matchingUser = appUsers.SingleOrDefault(u => u.EmailAddress.ToLower() == googleAuthPayload.Email.ToLower());
+            var user = appUsers.SingleOrDefault(u => u.EmailAddress.ToLower() == googleAuthPayload.Email.ToLower());
 
-            if (matchingUser == null)
+            if (user == null)
             {
-                matchingUser.Id = await _appUserStorage.Create(user, null);
+                user = new AppUser
+                {
+                    EmailAddress = googleAuthPayload.Email,
+                    FirstName = googleAuthPayload.GivenName,
+                    LastName = googleAuthPayload.FamilyName,
+                    LastLoggedInDate = DateTime.Now.ToEasternStandardTime()
+                };
+
+                user.Id = await _appUserStorage.Create(user, null);
             }
             else
             {
-                await _appUserStorage.Update(matchingUser, user, matchingUser.Id, null);
+                user.LastLoggedInDate = DateTime.Now.ToEasternStandardTime();
+
+                await _appUserStorage.Update(user, user, user.Id, null);
             }
 
             return user;
