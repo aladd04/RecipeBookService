@@ -7,134 +7,119 @@ using System.Collections.Generic;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace RecipeBookApi.Controllers
+namespace RecipeBookApi.Controllers;
+
+[Route("api/[controller]")]
+internal sealed class RecipeController : BaseApiController
 {
-    [Route("api/[controller]")]
-    public class RecipeController : BaseApiController
+    private readonly IRecipeService _recipeService;
+
+    public RecipeController(IAuthService authService, IRecipeService recipeService)
+        : base(authService)
     {
-        private readonly IRecipeService _recipeService;
+        _recipeService = recipeService;
+    }
 
-        public RecipeController(IAuthService authService, IRecipeService recipeService)
-            : base(authService)
+    [AllowAnonymous]
+    [HttpGet]
+    [Route("")]
+    [ProducesResponseType(typeof(IEnumerable<RecipeViewModel>), (int)HttpStatusCode.OK)]
+    public async Task<IActionResult> GetAllRecipes()
+    {
+        var allRecipes = await _recipeService.GetAll();
+
+        return Ok(allRecipes);
+    }
+
+    [AllowAnonymous]
+    [HttpGet]
+    [Route("{recipeId}")]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    [ProducesResponseType(typeof(RecipeViewModel), (int)HttpStatusCode.OK)]
+    public async Task<IActionResult> GetRecipeById(string recipeId)
+    {
+        var foundRecipe = string.IsNullOrWhiteSpace(recipeId) ? null : await _recipeService.GetById(recipeId);
+        if (foundRecipe == null)
+            return NotFound();
+
+        return Ok(foundRecipe);
+    }
+
+    [HttpPost]
+    [Route("")]
+    [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType(typeof(Dictionary<string, string[]>), (int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
+    public async Task<IActionResult> CreateRecipe([FromBody]RecipePostPutModel data)
+    {
+        if (data is null)
+            ModelState.AddModelError("Body", "No body provided.");
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
         {
-            _recipeService = recipeService;
+            var createdId = await _recipeService.Create(data, CurrentUser.Id);
+            return Ok(createdId);
         }
-
-        [AllowAnonymous]
-        [HttpGet]
-        [Route("")]
-        [ProducesResponseType(typeof(IEnumerable<RecipeViewModel>), (int)HttpStatusCode.OK)]
-        public async Task<IActionResult> GetAllRecipes()
+        catch (Exception ex)
         {
-            var allRecipes = await _recipeService.GetAll();
-
-            return Ok(allRecipes);
+            return BadRequest($"Issue creating a new recipe: {ex.Message}");
         }
+    }
 
-        [AllowAnonymous]
-        [HttpGet]
-        [Route("{recipeId}")]
-        [ProducesResponseType((int)HttpStatusCode.NotFound)]
-        [ProducesResponseType(typeof(RecipeViewModel), (int)HttpStatusCode.OK)]
-        public async Task<IActionResult> GetRecipeById(string recipeId)
+    [HttpPut]
+    [Route("{recipeId}")]
+    [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType(typeof(Dictionary<string, string[]>), (int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    public async Task<IActionResult> UpdateRecipe(string recipeId, [FromBody]RecipePostPutModel data)
+    {
+        if (string.IsNullOrWhiteSpace(recipeId))
+            ModelState.AddModelError(nameof(recipeId), "No ID provided to update.");
+
+        if (data is null)
+            ModelState.AddModelError("Body", "No body provided.");
+
+        if (!ModelState.IsValid)
+            return BadRequest(ModelState);
+
+        try
         {
-            var foundRecipe = string.IsNullOrWhiteSpace(recipeId) ? null : await _recipeService.GetById(recipeId);
-            if (foundRecipe == null)
-            {
-                return NotFound();
-            }
-
-            return Ok(foundRecipe);
+            await _recipeService.Update(recipeId, data, CurrentUser.Id, CurrentUser.IsAdmin);
+            return Ok();
         }
-
-        [HttpPost]
-        [Route("")]
-        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
-        [ProducesResponseType(typeof(Dictionary<string, string[]>), (int)HttpStatusCode.BadRequest)]
-        [ProducesResponseType(typeof(string), (int)HttpStatusCode.OK)]
-        public async Task<IActionResult> CreateRecipe([FromBody]RecipePostPutModel data)
+        catch (KeyNotFoundException)
         {
-            if (data == null)
-            {
-                ModelState.AddModelError("Body", "No body provided.");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            try
-            {
-                var createdId = await _recipeService.Create(data, CurrentUser.Id);
-                return Ok(createdId);
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Issue creating a new recipe: {ex.Message}");
-            }
+            return NotFound();
         }
-
-        [HttpPut]
-        [Route("{recipeId}")]
-        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
-        [ProducesResponseType(typeof(Dictionary<string, string[]>), (int)HttpStatusCode.BadRequest)]
-        [ProducesResponseType((int)HttpStatusCode.NotFound)]
-        [ProducesResponseType((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> UpdateRecipe(string recipeId, [FromBody]RecipePostPutModel data)
+        catch (Exception ex)
         {
-            if (string.IsNullOrWhiteSpace(recipeId))
-            {
-                ModelState.AddModelError(nameof(recipeId), "No ID provided to update.");
-            }
-
-            if (data == null)
-            {
-                ModelState.AddModelError("Body", "No body provided.");
-            }
-
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
-
-            try
-            {
-                await _recipeService.Update(recipeId, data, CurrentUser.Id, CurrentUser.IsAdmin);
-
-                return Ok();
-            }
-            catch (KeyNotFoundException)
-            {
-                return NotFound();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Issue updating a recipe: {ex.Message}");
-            }
+            return BadRequest($"Issue updating a recipe: {ex.Message}");
         }
+    }
 
-        [HttpDelete]
-        [Route("{recipeId}")]
-        [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
-        [ProducesResponseType((int)HttpStatusCode.NotFound)]
-        [ProducesResponseType((int)HttpStatusCode.OK)]
-        public async Task<IActionResult> DeleteRecipe(string recipeId)
+    [HttpDelete]
+    [Route("{recipeId}")]
+    [ProducesResponseType(typeof(string), (int)HttpStatusCode.BadRequest)]
+    [ProducesResponseType((int)HttpStatusCode.NotFound)]
+    [ProducesResponseType((int)HttpStatusCode.OK)]
+    public async Task<IActionResult> DeleteRecipe(string recipeId)
+    {
+        try
         {
-            try
-            {
-                await _recipeService.Delete(recipeId, CurrentUser.Id, CurrentUser.IsAdmin);
-
-                return Ok();
-            }
-            catch (KeyNotFoundException)
-            {
-                return NotFound();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest($"Issue deleting a recipe: {ex.Message}");
-            }
+            await _recipeService.Delete(recipeId, CurrentUser.Id, CurrentUser.IsAdmin);
+            return Ok();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+        catch (Exception ex)
+        {
+            return BadRequest($"Issue deleting a recipe: {ex.Message}");
         }
     }
 }

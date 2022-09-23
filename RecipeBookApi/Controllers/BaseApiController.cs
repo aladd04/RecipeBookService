@@ -3,19 +3,27 @@ using Microsoft.AspNetCore.Mvc;
 using RecipeBookApi.Models;
 using RecipeBookApi.Services.Contracts;
 
-namespace RecipeBookApi.Controllers
+namespace RecipeBookApi.Controllers;
+
+[Authorize]
+[ApiController]
+internal abstract class BaseApiController : ControllerBase
 {
-    [Authorize]
-    [ApiController]
-    public abstract class BaseApiController : ControllerBase
+    private AppUserClaimModel _currentUser;
+
+    protected IAuthService AuthService { get; }
+
+    protected AppUserClaimModel CurrentUser
     {
-        protected IAuthService AuthService { get; }
-
-        protected AppUserClaimModel CurrentUser => AuthService.GetUserFromClaims(User);
-
-        protected BaseApiController(IAuthService authService)
+        get
         {
-            AuthService = authService;
+            _currentUser ??= AuthService.GetUserFromClaims(User);
+            return _currentUser;
         }
+    }
+
+    protected BaseApiController(IAuthService authService)
+    {
+        AuthService = authService;
     }
 }

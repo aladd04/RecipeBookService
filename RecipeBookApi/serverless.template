@@ -8,8 +8,8 @@
 			"AspNetCoreFunction" : {
 				"Type" : "AWS::Serverless::Function",
 				"Properties": {
-				"Handler": "RecipeBookApi::RecipeBookApi.LambdaEntryPoint::FunctionHandlerAsync",
-				"Runtime": "dotnetcore2.1",
+				"Handler": "RecipeBookApi",
+				"Runtime": "dotnet6",
 				"CodeUri": "",
 				"MemorySize": 256,
 				"Timeout": 30,

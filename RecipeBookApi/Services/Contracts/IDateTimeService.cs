@@ -1,10 +1,9 @@
 ﻿using System;
 
-namespace RecipeBookApi.Services.Contracts
+namespace RecipeBookApi.Services.Contracts;
+
+internal interface IDateTimeService
 {
-    public interface IDateTimeService
-    {
-        DateTime GetEasternNow();
-        DateTime GetTokenExpireTime(int hoursUntilExpire);
-    }
+    DateTime GetEasternNow();
+    DateTime GetTokenExpireTime(int hoursUntilExpire);
 }

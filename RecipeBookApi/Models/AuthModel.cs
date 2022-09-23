@@ -1,7 +1,6 @@
-﻿namespace RecipeBookApi.Models
+﻿namespace RecipeBookApi.Models;
+
+internal sealed class AuthModel
 {
-    public class AuthModel
-    {
-        public string Token { get; set; }
-    }
+    public string Token { get; set; }
 }

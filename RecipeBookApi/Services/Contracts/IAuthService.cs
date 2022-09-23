@@ -2,11 +2,10 @@
 using System.Security.Claims;
 using System.Threading.Tasks;
 
-namespace RecipeBookApi.Services.Contracts
+namespace RecipeBookApi.Services.Contracts;
+
+internal interface IAuthService
 {
-    public interface IAuthService
-    {
-        Task<string> Authenticate(string token);
-        AppUserClaimModel GetUserFromClaims(ClaimsPrincipal userClaims);
-    }
+    Task<string> Authenticate(string token);
+    AppUserClaimModel GetUserFromClaims(ClaimsPrincipal userClaims);
 }
